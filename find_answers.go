@@ -18,19 +18,6 @@ type MatchedSentenceInfo struct {
 	NumMatches int
 }
 
-// TODO Gotto revise parts of speech ;)
-// Ideally tokenizer should be able to ignore it
-var ignoreMap = map[string] bool {
-	// Ignore words pertaining to questions
-	"when" : true,
-	"which" : true,
-	// Ignore non key words
-	"are" : true,
-	"is" : true,
-	"the" : true,
-	"of" : true,
-}
-
 func filterSentences (sentenceTokens [][]string, numSentences int,  questionTokens []string) []MatchedSentenceInfo {
 	matches := make([]MatchedSentenceInfo, numSentences)
 
@@ -39,10 +26,6 @@ func filterSentences (sentenceTokens [][]string, numSentences int,  questionToke
 		var match MatchedSentenceInfo
 
 		for j:=0; j < len(questionTokens); j++ {
-			if (ignoreMap[questionTokens[j]]) {
-				continue
-			}
-
 			for k := 0; k < len(sentenceTokens[i]); k++ {
 				if (questionTokens[j] == sentenceTokens[i][k]) {
 					numMatches++
@@ -61,6 +44,43 @@ func filterSentences (sentenceTokens [][]string, numSentences int,  questionToke
 	})
 
 	return matches
+}
+
+// TODO This list needs to be exhaustive to ignore iirelevant words
+// revising parts of speech ;)
+var ignoreMap = map[string] bool {
+	// Ignore words pertaining to questions
+	"when" : true,
+	"which" : true,
+	"what" : true,
+	"who" : true,
+
+	// Ignore non key words
+	"are" : true,
+	"is" : true,
+	"the" : true,
+	"of" : true,
+}
+
+// Remove tokens that can be ignored, duplicates
+func cleanUpTokens (elements []string) []string {
+	encountered := map[string]bool{}
+
+	for v:= range elements {
+		if (ignoreMap[elements[v]]) {
+			continue
+		}
+
+		// TODO Perform Stemming
+		encountered[elements[v]] = true
+	}
+
+	// Place all keys from the map into a slice.
+	result := []string{}
+	for key, _ := range encountered {
+		result = append(result, key)
+	}
+	return result
 }
 
 func main () {
@@ -106,13 +126,16 @@ func main () {
 	sentences := strings.Split(paragraph, ".")
 	numSentences := len(sentences)
 
-	// TODO perform stemming the tokens to filter variations in verbs eg: 'aim, aims, aimed' etc.
+	// TODO perform stemming of tokens to filter variations in verbs eg: 'aim, aims, aimed' etc.
 	// Tokenize sentences
 	senTokens := make([][] string, numSentences)
 	for i := 0; i < numSentences; i++ {
+		//fmt.Printf("SENTENCE[%d] - %s\n", i, sentences[i])
 		senTokens[i] = strings.FieldsFunc(sentences[i], func (delim rune) bool {
 			return delim == ',' || delim == ';' || delim == ' ';
 		})
+
+		senTokens[i] = cleanUpTokens(senTokens[i])
 	}
 
 	// Tokenize questions
@@ -121,6 +144,7 @@ func main () {
 		questionTokens[i] = strings.FieldsFunc(questions[i], func (delim rune) bool {
 			return delim == ',' || delim == ';' || delim == ' ' || delim == '?';
 		})
+		questionTokens[i] = cleanUpTokens(questionTokens[i])
 	}
 
 	// Find answers to the questions
@@ -130,17 +154,19 @@ LoopQuestions:
 		matchedSentences := filterSentences(senTokens, numSentences, questionTokens[i])
 
 		// Find answers in top matched sentences
-		for j := 0; j < numSentences; j++ {
+		for j := 0; j < len(matchedSentences); j++ {
 			if matchedSentences[j].NumMatches != 0 {
 				for k := 0; k < len(answers); k++ {
 					senIndex := matchedSentences[j].Index
-
+					//fmt.Printf("SENTENCE[%d] - %s\n", senIndex, sentences[senIndex])
+					//fmt.Printf("ANSWER - %s\n", answers[k])
 					if (strings.Contains(sentences[senIndex], answers[k])) {
 						//fmt.Println(questions[i])
 						//fmt.Printf("SENTENCE[%d] - %s\n", senIndex, sentences[senIndex])
 						//fmt.Printf("ANSWER - %s\n", answers[k])
 
 						// TODO we might need another iteration if multiple answers match the same sentence
+						// Maybe some kind of prediction algorithm ?
 						fmt.Println(answers[k])
 						answers = append(answers[:k], answers[k+1:]...)
 						continue LoopQuestions
