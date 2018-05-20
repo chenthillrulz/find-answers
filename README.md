@@ -9,7 +9,7 @@ The approach is in the lines of how we figure out answers for comprehension ques
 # Usage
 $ go build find_answers.go
  
-$ ./find_answers test-data/input1.txt
+$ ./find_answers < test-data/input1.txt
 
 To run units,
 $ go test
