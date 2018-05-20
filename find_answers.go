@@ -32,17 +32,31 @@ var ignoreMap = map[string] bool {
 	"of" : true,
 }
 
-// Remove tokens that can be ignored, duplicates
-func sanitizeTokens (elements []string) []string {
+// https://github.com/c9s/inflect - converts singular <-> plural library
+// nltk python project has some good utilities
+func crudeStemming (token string) string {
+	if (strings.HasSuffix(token, "s")) {
+		token = strings.TrimSuffix(token, "s")
+	} else if (strings.HasSuffix(token, "ed")) {
+		token = strings.TrimSuffix(token, "ed")
+	}
+
+	return token;
+}
+
+
+// Remove tokens that can be ignored, duplicates. Perform crude stemming
+func sanitizeTokens (tokens []string) []string {
 	encountered := map[string]bool{}
 
-	for v:= range elements {
-		if (ignoreMap[elements[v]]) {
+	for v:= range tokens {
+		tokens[v] = strings.ToLower(tokens[v])
+		if (ignoreMap[tokens[v]]) {
 			continue
 		}
 
-		// TODO Perform Stemming
-		encountered[elements[v]] = true
+		tokens[v] = crudeStemming(tokens[v])
+		encountered[tokens[v]] = true
 	}
 
 	// Place all keys from the map into a slice.
@@ -99,7 +113,7 @@ func filterSentences (sentenceTokens [][]string, numSentences int,  questionToke
 }
 
 /**
-The algorithm maps the key words from questions to the sentences and uses matches the answers with the filtered sentences.
+The algorithm maps the key words from questions to the sentences and  matches the answers with the filtered sentences.
  */
 
 func FindAnswers (inputFile *os.File) ([]string, error) {
@@ -154,7 +168,7 @@ LoopQuestions:
 		matchedSentences := filterSentences(senTokens, numSentences, questionTokens[i])
 
 		// Find answers in top matched sentences
-		for j := 0; j < len(matchedSentences); j++ {
+		for j := 0; j < len(sentences); j++ {
 			if matchedSentences[j].NumMatches != 0 {
 
 				// Iterate answers and find the top matched ones
@@ -178,20 +192,7 @@ LoopQuestions:
 
 
 func main () {
-	if (len (os.Args) != 2) {
-		fmt.Println("Usage: ./find_answers <full path for filename>")
-		return
-	}
-
-	inputFile, err := os.Open(os.Args[1]);
-	if err != nil {
-		fmt.Printf("Unable to open the file, error - %v", err)
-		return;
-	}
-
-	defer inputFile.Close()
-
-	matchedAnswers, err := FindAnswers(inputFile)
+	matchedAnswers, err := FindAnswers(os.Stdin)
 	if err != nil {
 		return
 	}
