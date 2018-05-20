@@ -15,7 +15,7 @@ const (
 
 /**
 * The following can go into the tokenizer package
- */
+**/
 // TODO This list needs to be exhaustive to ignore iirelevant words
 // revising parts of speech ;)
 var ignoreMap = map[string] bool {
@@ -113,9 +113,8 @@ func filterSentences (sentenceTokens [][]string, numSentences int,  questionToke
 }
 
 /**
-The algorithm maps the key words from questions to the sentences and  matches the answers with the filtered sentences.
- */
-
+*	The algorithm maps the key words from questions to the sentences and  matches the answers with the filtered sentences.
+**/
 func FindAnswers (inputFile *os.File) ([]string, error) {
 	var matchedAnswers []string;
 
